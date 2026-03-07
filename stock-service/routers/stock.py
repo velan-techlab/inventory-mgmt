@@ -1,0 +1,133 @@
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Optional
+
+from database import get_db
+from models import Stock
+from schemas import StockCreate, StockUpdate, StockResponse, PaginatedStockResponse, StockListResponse
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/stocks", tags=["stocks"])
+
+
+@router.post("/", response_model=StockResponse, status_code=201)
+def create_stock(payload: StockCreate, db: Session = Depends(get_db)):
+    logger.info("Creating stock with id '%s'", payload.stock_id)
+    try:
+        existing = db.query(Stock).filter(Stock.stock_id == payload.stock_id).first()
+        if existing:
+            logger.debug("Stock with id '%s' already exists", payload.stock_id)
+            raise HTTPException(status_code=400, detail=f"Stock with id '{payload.stock_id}' already exists")
+
+        stock = Stock(
+            stock_id=payload.stock_id,
+            item_name=payload.item_name,
+            current_qty=payload.current_qty,
+            created_by=payload.created_by or "system",
+            updated_by=payload.created_by or "system",
+            created_date=datetime.utcnow(),
+            updated_date=datetime.utcnow(),
+        )
+        db.add(stock)
+        db.commit()
+        db.refresh(stock)
+        logger.info("Stock '%s' created successfully", stock.stock_id)
+        return stock
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Unexpected error while creating stock '%s'", payload.stock_id)
+        raise
+
+
+@router.put("/{stock_id}", response_model=StockResponse)
+def update_stock(stock_id: str, payload: StockUpdate, db: Session = Depends(get_db)):
+    logger.info("Updating stock '%s'", stock_id)
+    try:
+        stock = db.query(Stock).filter(Stock.stock_id == stock_id).first()
+        if not stock:
+            logger.debug("Stock '%s' not found for update", stock_id)
+            raise HTTPException(status_code=404, detail=f"Stock with id '{stock_id}' not found")
+
+        if payload.item_name is not None:
+            stock.item_name = payload.item_name
+        if payload.current_qty is not None:
+            stock.current_qty = payload.current_qty
+
+        stock.updated_by = payload.updated_by or "system"
+        stock.updated_date = datetime.utcnow()
+
+        db.commit()
+        db.refresh(stock)
+        logger.info("Stock '%s' updated successfully", stock_id)
+        return stock
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Unexpected error while updating stock '%s'", stock_id)
+        raise
+
+
+@router.delete("/{stock_id}", status_code=204)
+def delete_stock(stock_id: str, db: Session = Depends(get_db)):
+    logger.info("Deleting stock '%s'", stock_id)
+    try:
+        stock = db.query(Stock).filter(
+            (Stock.stock_id == stock_id) | (Stock.item_name == stock_id)
+        ).first()
+        if not stock:
+            logger.debug("Stock '%s' not found for deletion", stock_id)
+            raise HTTPException(status_code=404, detail=f"Stock '{stock_id}' not found")
+
+        db.delete(stock)
+        db.commit()
+        logger.info("Stock '%s' deleted successfully", stock_id)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Unexpected error while deleting stock '%s'", stock_id)
+        raise
+
+
+@router.get("/", response_model=PaginatedStockResponse)
+def list_stocks(
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
+    db: Session = Depends(get_db),
+):
+    logger.debug("Listing stocks - page=%d, page_size=%d", page, page_size)
+    try:
+        total = db.query(Stock).count()
+        offset = (page - 1) * page_size
+        items = db.query(Stock).offset(offset).limit(page_size).all()
+        logger.info("Returning %d/%d stocks (page %d)", len(items), total, page)
+        return PaginatedStockResponse(
+            total=total,
+            page=page,
+            page_size=page_size,
+            items=[StockListResponse.model_validate(item) for item in items],
+        )
+    except Exception:
+        logger.exception("Unexpected error while listing stocks")
+        raise
+
+
+@router.get("/{stock_id}", response_model=StockResponse)
+def get_stock(stock_id: str, db: Session = Depends(get_db)):
+    logger.debug("Fetching stock '%s'", stock_id)
+    try:
+        stock = db.query(Stock).filter(Stock.stock_id == stock_id).first()
+        if not stock:
+            logger.error("Stock '%s' not found", stock_id)
+            raise HTTPException(status_code=404, detail=f"Stock with id '{stock_id}' not found")
+        logger.info("Stock '%s' retrieved successfully", stock_id)
+        return stock
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Unexpected error while fetching stock '%s'", stock_id)
+        raise
