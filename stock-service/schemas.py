@@ -43,3 +43,23 @@ class PaginatedStockResponse(BaseModel):
     page: int
     page_size: int
     items: List[StockListResponse]
+
+
+class StockAdjust(BaseModel):
+    qty: int = Field(..., gt=0, description="Quantity to add or reduce")
+    updated_by: Optional[str] = Field(default="system", description="User performing the adjustment")
+
+
+class StockBulkAdjustItem(BaseModel):
+    stock_id: str = Field(..., description="Unique stock identifier")
+    qty: int = Field(..., gt=0, description="Quantity to add or reduce")
+
+
+class StockBulkAdjust(BaseModel):
+    items: List[StockBulkAdjustItem] = Field(..., min_length=1, description="List of stock adjustments")
+    updated_by: Optional[str] = Field(default="system", description="User performing the adjustment")
+
+
+class StockBulkAdjustResult(BaseModel):
+    success: List[StockListResponse]
+    failed: List[dict]
