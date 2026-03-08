@@ -116,58 +116,6 @@ def list_stocks(
         raise
 
 
-@router.patch("/{stock_id}/add", response_model=StockResponse)
-def add_stock(stock_id: str, payload: StockAdjust, db: Session = Depends(get_db)):
-    logger.info("Adding %d qty to stock '%s'", payload.qty, stock_id)
-    try:
-        stock = db.query(Stock).filter(Stock.stock_id == stock_id).first()
-        if not stock:
-            logger.error("Stock '%s' not found for add", stock_id)
-            raise HTTPException(status_code=404, detail=f"Stock with id '{stock_id}' not found")
-
-        stock.current_qty += payload.qty
-        stock.updated_by = payload.updated_by or "system"
-        stock.updated_date = datetime.utcnow()
-
-        db.commit()
-        db.refresh(stock)
-        logger.info("Stock '%s' qty increased by %d, new qty=%d", stock_id, payload.qty, stock.current_qty)
-        return stock
-    except HTTPException:
-        raise
-    except Exception:
-        logger.exception("Unexpected error while adding stock qty for '%s'", stock_id)
-        raise
-
-
-@router.patch("/{stock_id}/reduce", response_model=StockResponse)
-def reduce_stock(stock_id: str, payload: StockAdjust, db: Session = Depends(get_db)):
-    logger.info("Reducing %d qty from stock '%s'", payload.qty, stock_id)
-    try:
-        stock = db.query(Stock).filter(Stock.stock_id == stock_id).first()
-        if not stock:
-            logger.error("Stock '%s' not found for reduce", stock_id)
-            raise HTTPException(status_code=404, detail=f"Stock with id '{stock_id}' not found")
-
-        if stock.current_qty < payload.qty:
-            logger.error("Insufficient qty for stock '%s': have %d, requested %d", stock_id, stock.current_qty, payload.qty)
-            raise HTTPException(status_code=400, detail=f"Insufficient quantity: current={stock.current_qty}, requested={payload.qty}")
-
-        stock.current_qty -= payload.qty
-        stock.updated_by = payload.updated_by or "system"
-        stock.updated_date = datetime.utcnow()
-
-        db.commit()
-        db.refresh(stock)
-        logger.info("Stock '%s' qty reduced by %d, new qty=%d", stock_id, payload.qty, stock.current_qty)
-        return stock
-    except HTTPException:
-        raise
-    except Exception:
-        logger.exception("Unexpected error while reducing stock qty for '%s'", stock_id)
-        raise
-
-
 @router.patch("/bulk/add", response_model=StockBulkAdjustResult)
 def bulk_add_stock(payload: StockBulkAdjust, db: Session = Depends(get_db)):
     logger.info("Bulk add request for %d stocks", len(payload.items))
@@ -222,6 +170,58 @@ def bulk_reduce_stock(payload: StockBulkAdjust, db: Session = Depends(get_db)):
             failed.append({"stock_id": item.stock_id, "reason": "unexpected error"})
     logger.info("Bulk reduce complete: %d succeeded, %d failed", len(success), len(failed))
     return StockBulkAdjustResult(success=success, failed=failed)
+
+
+@router.patch("/{stock_id}/add", response_model=StockResponse)
+def add_stock(stock_id: str, payload: StockAdjust, db: Session = Depends(get_db)):
+    logger.info("Adding %d qty to stock '%s'", payload.qty, stock_id)
+    try:
+        stock = db.query(Stock).filter(Stock.stock_id == stock_id).first()
+        if not stock:
+            logger.error("Stock '%s' not found for add", stock_id)
+            raise HTTPException(status_code=404, detail=f"Stock with id '{stock_id}' not found")
+
+        stock.current_qty += payload.qty
+        stock.updated_by = payload.updated_by or "system"
+        stock.updated_date = datetime.utcnow()
+
+        db.commit()
+        db.refresh(stock)
+        logger.info("Stock '%s' qty increased by %d, new qty=%d", stock_id, payload.qty, stock.current_qty)
+        return stock
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Unexpected error while adding stock qty for '%s'", stock_id)
+        raise
+
+
+@router.patch("/{stock_id}/reduce", response_model=StockResponse)
+def reduce_stock(stock_id: str, payload: StockAdjust, db: Session = Depends(get_db)):
+    logger.info("Reducing %d qty from stock '%s'", payload.qty, stock_id)
+    try:
+        stock = db.query(Stock).filter(Stock.stock_id == stock_id).first()
+        if not stock:
+            logger.error("Stock '%s' not found for reduce", stock_id)
+            raise HTTPException(status_code=404, detail=f"Stock with id '{stock_id}' not found")
+
+        if stock.current_qty < payload.qty:
+            logger.error("Insufficient qty for stock '%s': have %d, requested %d", stock_id, stock.current_qty, payload.qty)
+            raise HTTPException(status_code=400, detail=f"Insufficient quantity: current={stock.current_qty}, requested={payload.qty}")
+
+        stock.current_qty -= payload.qty
+        stock.updated_by = payload.updated_by or "system"
+        stock.updated_date = datetime.utcnow()
+
+        db.commit()
+        db.refresh(stock)
+        logger.info("Stock '%s' qty reduced by %d, new qty=%d", stock_id, payload.qty, stock.current_qty)
+        return stock
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Unexpected error while reducing stock qty for '%s'", stock_id)
+        raise
 
 
 @router.get("/{stock_id}", response_model=StockResponse)
