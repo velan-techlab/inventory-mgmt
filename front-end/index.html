@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    body { background: #f0f2f5; }
+    .btn-xs { padding: 0.1rem 0.4rem; font-size: 0.75rem; border-radius: 0.2rem; }
+    .table-actions { white-space: nowrap; }
+    code { color: #0d6efd; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark px-4">
+  <span class="navbar-brand mb-0 h5"><i class="bi bi-boxes me-2"></i>Inventory Management</span>
+</nav>
+
+<div class="container-fluid mt-4 px-4">
+  <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active fw-semibold" data-bs-toggle="tab" href="#stockTab" role="tab">
+        <i class="bi bi-archive me-1"></i>Stock
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link fw-semibold" data-bs-toggle="tab" href="#salesTab" role="tab">
+        <i class="bi bi-cart me-1"></i>Sales
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link fw-semibold" data-bs-toggle="tab" href="#purchaseTab" role="tab">
+        <i class="bi bi-truck me-1"></i>Purchase
+      </a>
+    </li>
+  </ul>
+
+  <div class="tab-content bg-white border border-top-0 rounded-bottom p-4 shadow-sm">
+
+    <!-- ===================== STOCK TAB ===================== -->
+    <div class="tab-pane fade show active" id="stockTab" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 text-muted">Stock Items</h6>
+        <button class="btn btn-primary btn-sm" onclick="openStockModal()">
+          <i class="bi bi-plus-circle me-1"></i>Add Stock
+        </button>
+      </div>
+      <div id="stockTable"><div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div></div>
+      <div id="stockPagination" class="mt-3"></div>
+    </div>
+
+    <!-- ===================== SALES TAB ===================== -->
+    <div class="tab-pane fade" id="salesTab" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 text-muted">Sales Orders</h6>
+        <button class="btn btn-primary btn-sm" onclick="openSaleModal()">
+          <i class="bi bi-plus-circle me-1"></i>New Sale
+        </button>
+      </div>
+      <div id="salesTable"><div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div></div>
+      <div id="salesPagination" class="mt-3"></div>
+    </div>
+
+    <!-- ===================== PURCHASE TAB ===================== -->
+    <div class="tab-pane fade" id="purchaseTab" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 text-muted">Purchase Orders</h6>
+        <button class="btn btn-primary btn-sm" onclick="openPurchaseModal()">
+          <i class="bi bi-plus-circle me-1"></i>New Purchase
+        </button>
+      </div>
+      <div id="purchaseTable"><div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div></div>
+      <div id="purchasePagination" class="mt-3"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== STOCK MODAL ==================== -->
+<div class="modal fade" id="stockModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="stockModalTitle">Add Stock</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="stockModalMode">
+        <div class="mb-3" id="stockIdGroup">
+          <label class="form-label">Stock ID <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="stockIdInput" placeholder="e.g. STK-001">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Item Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="stockItemNameInput" placeholder="e.g. Widget A">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Current Qty <span class="text-danger">*</span></label>
+          <input type="number" class="form-control" id="stockQtyInput" min="0" value="0">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveStock()"><i class="bi bi-save me-1"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ADJUST QTY MODAL ==================== -->
+<div class="modal fade" id="adjustModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="adjustModalTitle">Adjust Qty</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="adjustStockId">
+        <input type="hidden" id="adjustMode">
+        <div class="mb-3">
+          <label class="form-label">Quantity <span class="text-danger">*</span></label>
+          <input type="number" class="form-control" id="adjustQtyInput" min="1" placeholder="Enter qty">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveAdjust()">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SALE MODAL ==================== -->
+<div class="modal fade" id="saleModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="saleModalTitle">New Sale</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="saleModalMode">
+        <div class="row g-3 mb-3">
+          <div class="col-md-4" id="saleIdGroup">
+            <label class="form-label">Sale ID <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="saleIdInput" placeholder="e.g. SALE-001">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Customer Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="saleCustomerInput">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Sale Date/Time <span class="text-danger">*</span></label>
+            <input type="datetime-local" class="form-control" id="saleDateInput">
+          </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="form-label mb-0 fw-semibold">Items</label>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="addSaleItemRow()">
+            <i class="bi bi-plus"></i> Add Item
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead class="table-light">
+              <tr><th>Item ID</th><th>Item Name</th><th>Qty</th><th width="40"></th></tr>
+            </thead>
+            <tbody id="saleItemsBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveSale()"><i class="bi bi-save me-1"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SALE DETAIL MODAL ==================== -->
+<div class="modal fade" id="saleDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Sale Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="saleDetailBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PURCHASE MODAL ==================== -->
+<div class="modal fade" id="purchaseModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="purchaseModalTitle">New Purchase</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="purchaseModalMode">
+        <div class="row g-3 mb-3">
+          <div class="col-md-4" id="purchaseIdGroup">
+            <label class="form-label">Purchase ID <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="purchaseIdInput" placeholder="e.g. PO-001">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Vendor Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="purchaseVendorInput">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Purchase Date/Time <span class="text-danger">*</span></label>
+            <input type="datetime-local" class="form-control" id="purchaseDateInput">
+          </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="form-label mb-0 fw-semibold">Items</label>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="addPurchaseItemRow()">
+            <i class="bi bi-plus"></i> Add Item
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead class="table-light">
+              <tr><th>Item ID</th><th>Item Name</th><th>Qty</th><th width="40"></th></tr>
+            </thead>
+            <tbody id="purchaseItemsBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="savePurchase()"><i class="bi bi-save me-1"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PURCHASE DETAIL MODAL ==================== -->
+<div class="modal fade" id="purchaseDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Purchase Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="purchaseDetailBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TOAST ==================== -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="appToast" class="toast align-items-center text-white border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="toastBody"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ================================================================
+// CONFIG
+// ================================================================
+const STOCK_URL    = '';
+const SALES_URL    = '';
+const PURCHASE_URL = '';
+const PAGE_SIZE    = 10;
+
+// ================================================================
+// UTILITIES
+// ================================================================
+function toast(msg, ok = true) {
+  const el = document.getElementById('appToast');
+  el.className = `toast align-items-center text-white border-0 ${ok ? 'bg-success' : 'bg-danger'}`;
+  document.getElementById('toastBody').textContent = msg;
+  bootstrap.Toast.getOrCreateInstance(el, { delay: 3500 }).show();
+}
+
+async function req(method, url, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({ detail: r.statusText }));
+    throw new Error(Array.isArray(e.detail) ? e.detail.map(d => d.msg).join(', ') : (e.detail || r.statusText));
+  }
+  return r.status === 204 ? null : r.json();
+}
+
+function fmt(d) { return d ? new Date(d).toLocaleString() : '—'; }
+
+function toLocal(d) {
+  const dt = d ? new Date(d) : new Date();
+  dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
+  return dt.toISOString().slice(0, 16);
+}
+
+function paginator(containerId, total, page, fnName) {
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  let h = `<div class="d-flex align-items-center gap-3">
+    <nav><ul class="pagination pagination-sm mb-0">`;
+  h += `<li class="page-item${page===1?' disabled':''}"><a class="page-link" href="#" onclick="${fnName}(${page-1});return false">‹</a></li>`;
+  for (let i = 1; i <= pages; i++) {
+    if (pages > 9 && i !== 1 && i !== pages && Math.abs(i - page) > 2) {
+      if (i === page - 3 || i === page + 3) h += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+      continue;
+    }
+    h += `<li class="page-item${i===page?' active':''}"><a class="page-link" href="#" onclick="${fnName}(${i});return false">${i}</a></li>`;
+  }
+  h += `<li class="page-item${page===pages?' disabled':''}"><a class="page-link" href="#" onclick="${fnName}(${page+1});return false">›</a></li>`;
+  h += `</ul></nav><small class="text-muted">Total: ${total}</small></div>`;
+  document.getElementById(containerId).innerHTML = h;
+}
+
+// ================================================================
+// STOCK MODULE
+// ================================================================
+let stockPage = 1;
+
+async function loadStocks(page = 1) {
+  stockPage = page;
+  const el = document.getElementById('stockTable');
+  try {
+    const d = await req('GET', `${STOCK_URL}/stocks/?page=${page}&page_size=${PAGE_SIZE}`);
+    if (!d.items.length) {
+      el.innerHTML = '<p class="text-muted text-center py-4">No stock items found.</p>';
+      document.getElementById('stockPagination').innerHTML = '';
+      return;
+    }
+    let h = `<div class="table-responsive">
+      <table class="table table-hover table-bordered table-sm align-middle mb-0">
+        <thead class="table-dark">
+          <tr><th>Stock ID</th><th>Item Name</th><th>Qty</th><th class="table-actions">Actions</th></tr>
+        </thead><tbody>`;
+    for (const s of d.items) {
+      const low = s.current_qty <= 5;
+      h += `<tr>
+        <td><code>${s.stock_id}</code></td>
+        <td>${s.item_name}</td>
+        <td>
+          <span class="${low ? 'text-danger fw-bold' : ''}">${s.current_qty}</span>
+          ${low ? ' <span class="badge bg-danger">Low</span>' : ''}
+        </td>
+        <td class="table-actions">
+          <button class="btn btn-xs btn-outline-success me-1" onclick="openAdjust('${s.stock_id}','add')" title="Add Qty">
+            <i class="bi bi-plus-lg"></i> Add
+          </button>
+          <button class="btn btn-xs btn-outline-warning me-1" onclick="openAdjust('${s.stock_id}','reduce')" title="Reduce Qty">
+            <i class="bi bi-dash-lg"></i> Reduce
+          </button>
+          <button class="btn btn-xs btn-outline-primary me-1" onclick="openStockModal('${s.stock_id}')" title="Edit">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-xs btn-outline-danger" onclick="deleteStock('${s.stock_id}')" title="Delete">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>`;
+    }
+    h += `</tbody></table></div>`;
+    el.innerHTML = h;
+    paginator('stockPagination', d.total, page, 'loadStocks');
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Failed to load stocks: ${e.message}</div>`;
+  }
+}
+
+async function openStockModal(stockId = null) {
+  const mode = stockId ? 'edit' : 'create';
+  document.getElementById('stockModalMode').value = mode;
+  document.getElementById('stockModalTitle').textContent = stockId ? 'Edit Stock' : 'Add Stock';
+  document.getElementById('stockIdGroup').style.display = mode === 'edit' ? 'none' : '';
+  document.getElementById('stockIdInput').value = '';
+  document.getElementById('stockItemNameInput').value = '';
+  document.getElementById('stockQtyInput').value = 0;
+  if (stockId) {
+    try {
+      const s = await req('GET', `${STOCK_URL}/stocks/${stockId}`);
+      document.getElementById('stockIdInput').value = s.stock_id;
+      document.getElementById('stockItemNameInput').value = s.item_name;
+      document.getElementById('stockQtyInput').value = s.current_qty;
+    } catch (e) { toast(e.message, false); return; }
+  }
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('stockModal')).show();
+}
+
+async function saveStock() {
+  const mode = document.getElementById('stockModalMode').value;
+  const id   = document.getElementById('stockIdInput').value.trim();
+  const name = document.getElementById('stockItemNameInput').value.trim();
+  const qty  = parseInt(document.getElementById('stockQtyInput').value);
+  if (!name || isNaN(qty) || qty < 0) { toast('Item name and valid qty required.', false); return; }
+  try {
+    if (mode === 'create') {
+      if (!id) { toast('Stock ID is required.', false); return; }
+      await req('POST', `${STOCK_URL}/stocks/`, { stock_id: id, item_name: name, current_qty: qty });
+      toast(`Stock '${id}' created.`);
+    } else {
+      await req('PUT', `${STOCK_URL}/stocks/${id}`, { item_name: name, current_qty: qty });
+      toast(`Stock '${id}' updated.`);
+    }
+    bootstrap.Modal.getInstance(document.getElementById('stockModal')).hide();
+    loadStocks(stockPage);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function deleteStock(id) {
+  if (!confirm(`Delete stock '${id}'?`)) return;
+  try {
+    await req('DELETE', `${STOCK_URL}/stocks/${id}`);
+    toast(`Stock '${id}' deleted.`);
+    loadStocks(stockPage);
+  } catch (e) { toast(e.message, false); }
+}
+
+function openAdjust(stockId, mode) {
+  document.getElementById('adjustStockId').value = stockId;
+  document.getElementById('adjustMode').value = mode;
+  document.getElementById('adjustModalTitle').textContent =
+    (mode === 'add' ? 'Add Qty' : 'Reduce Qty') + ` — ${stockId}`;
+  document.getElementById('adjustQtyInput').value = '';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('adjustModal')).show();
+}
+
+async function saveAdjust() {
+  const id   = document.getElementById('adjustStockId').value;
+  const mode = document.getElementById('adjustMode').value;
+  const qty  = parseInt(document.getElementById('adjustQtyInput').value);
+  if (!qty || qty <= 0) { toast('Qty must be greater than 0.', false); return; }
+  try {
+    await req('PATCH', `${STOCK_URL}/stocks/${id}/${mode}`, { qty });
+    toast(`Stock '${id}' ${mode === 'add' ? 'increased' : 'reduced'} by ${qty}.`);
+    bootstrap.Modal.getInstance(document.getElementById('adjustModal')).hide();
+    loadStocks(stockPage);
+  } catch (e) { toast(e.message, false); }
+}
+
+// ================================================================
+// SALES MODULE
+// ================================================================
+let salesPage = 1;
+
+async function loadSales(page = 1) {
+  salesPage = page;
+  const el = document.getElementById('salesTable');
+  try {
+    const d = await req('GET', `${SALES_URL}/sales/?page=${page}&page_size=${PAGE_SIZE}`);
+    if (!d.items.length) {
+      el.innerHTML = '<p class="text-muted text-center py-4">No sales found.</p>';
+      document.getElementById('salesPagination').innerHTML = '';
+      return;
+    }
+    let h = `<div class="table-responsive">
+      <table class="table table-hover table-bordered table-sm align-middle mb-0">
+        <thead class="table-dark">
+          <tr><th>Sale ID</th><th>Customer</th><th>Date/Time</th><th class="table-actions">Actions</th></tr>
+        </thead><tbody>`;
+    for (const s of d.items) {
+      h += `<tr>
+        <td><code>${s.sale_id}</code></td>
+        <td>${s.customer_name}</td>
+        <td>${fmt(s.sale_datetime)}</td>
+        <td class="table-actions">
+          <button class="btn btn-xs btn-outline-info me-1" onclick="viewSale('${s.sale_id}')" title="View Details">
+            <i class="bi bi-eye"></i>
+          </button>
+          ${s.status === 'approved'
+            ? '<button class="btn btn-xs btn-success me-1" disabled><i class="bi bi-check-circle-fill"></i> Approved</button>'
+            : `<button class="btn btn-xs btn-outline-success me-1" onclick="approveSale('${s.sale_id}')" title="Approve"><i class="bi bi-check-lg"></i> Approve</button>`
+          }
+          <button class="btn btn-xs btn-outline-primary me-1" onclick="openSaleModal('${s.sale_id}')" title="Edit">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-xs btn-outline-danger" onclick="deleteSale('${s.sale_id}')" title="Delete">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>`;
+    }
+    h += `</tbody></table></div>`;
+    el.innerHTML = h;
+    paginator('salesPagination', d.total, page, 'loadSales');
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Failed to load sales: ${e.message}</div>`;
+  }
+}
+
+async function viewSale(saleId) {
+  const body = document.getElementById('saleDetailBody');
+  body.innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('saleDetailModal')).show();
+  try {
+    const s = await req('GET', `${SALES_URL}/sales/${saleId}`);
+    const badge = s.status === 'approved'
+      ? '<span class="badge bg-success fs-6">Approved</span>'
+      : '<span class="badge bg-warning text-dark fs-6">Pending</span>';
+    const itemRows = s.items.map(i =>
+      `<tr><td><code>${i.item_id}</code></td><td>${i.item_name}</td><td>${i.sales_item_qty}</td></tr>`
+    ).join('');
+    body.innerHTML = `
+      <div class="row g-3 mb-3">
+        <div class="col-6"><small class="text-muted d-block">Sale ID</small><strong>${s.sale_id}</strong></div>
+        <div class="col-6"><small class="text-muted d-block">Status</small>${badge}</div>
+        <div class="col-6"><small class="text-muted d-block">Customer</small>${s.customer_name}</div>
+        <div class="col-6"><small class="text-muted d-block">Sale Date</small>${fmt(s.sale_datetime)}</div>
+        <div class="col-6"><small class="text-muted d-block">Created By</small>${s.created_by}</div>
+        <div class="col-6"><small class="text-muted d-block">Created Date</small>${fmt(s.created_date)}</div>
+        ${s.approved_by ? `<div class="col-6"><small class="text-muted d-block">Approved By</small>${s.approved_by}</div>` : ''}
+        ${s.approved_date ? `<div class="col-6"><small class="text-muted d-block">Approved Date</small>${fmt(s.approved_date)}</div>` : ''}
+      </div>
+      <h6 class="fw-semibold">Items</h6>
+      <table class="table table-sm table-bordered mb-0">
+        <thead class="table-light"><tr><th>Item ID</th><th>Item Name</th><th>Qty</th></tr></thead>
+        <tbody>${itemRows}</tbody>
+      </table>`;
+  } catch (e) {
+    body.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+  }
+}
+
+function addSaleItemRow(item = null) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" class="form-control form-control-sm" placeholder="item_id" value="${item?.item_id || ''}"></td>
+    <td><input type="text" class="form-control form-control-sm" placeholder="item_name" value="${item?.item_name || ''}"></td>
+    <td><input type="number" class="form-control form-control-sm" placeholder="qty" min="1" value="${item?.sales_item_qty || ''}"></td>
+    <td><button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('tr').remove()"><i class="bi bi-x"></i></button></td>`;
+  document.getElementById('saleItemsBody').appendChild(tr);
+}
+
+async function openSaleModal(saleId = null) {
+  const mode = saleId ? 'edit' : 'create';
+  document.getElementById('saleModalMode').value = mode;
+  document.getElementById('saleModalTitle').textContent = saleId ? 'Edit Sale' : 'New Sale';
+  document.getElementById('saleIdGroup').style.display = mode === 'edit' ? 'none' : '';
+  document.getElementById('saleIdInput').value = '';
+  document.getElementById('saleCustomerInput').value = '';
+  document.getElementById('saleDateInput').value = toLocal(null);
+  document.getElementById('saleItemsBody').innerHTML = '';
+  if (saleId) {
+    try {
+      const s = await req('GET', `${SALES_URL}/sales/${saleId}`);
+      document.getElementById('saleIdInput').value = s.sale_id;
+      document.getElementById('saleCustomerInput').value = s.customer_name;
+      document.getElementById('saleDateInput').value = toLocal(s.sale_datetime);
+      s.items.forEach(i => addSaleItemRow(i));
+    } catch (e) { toast(e.message, false); return; }
+  } else {
+    addSaleItemRow();
+  }
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('saleModal')).show();
+}
+
+function getSaleItems() {
+  return [...document.querySelectorAll('#saleItemsBody tr')].map(tr => {
+    const [a, b, c] = tr.querySelectorAll('input');
+    return { item_id: a.value.trim(), item_name: b.value.trim(), sales_item_qty: parseInt(c.value) };
+  }).filter(i => i.item_id && i.item_name && i.sales_item_qty > 0);
+}
+
+async function saveSale() {
+  const mode     = document.getElementById('saleModalMode').value;
+  const id       = document.getElementById('saleIdInput').value.trim();
+  const customer = document.getElementById('saleCustomerInput').value.trim();
+  const dt       = document.getElementById('saleDateInput').value;
+  const items    = getSaleItems();
+  if (!customer || !dt) { toast('Customer and date are required.', false); return; }
+  if (!items.length) { toast('At least one valid item is required.', false); return; }
+  try {
+    if (mode === 'create') {
+      if (!id) { toast('Sale ID is required.', false); return; }
+      await req('POST', `${SALES_URL}/sales/`, {
+        sale_id: id, customer_name: customer, sale_datetime: new Date(dt).toISOString(), items
+      });
+      toast(`Sale '${id}' created.`);
+    } else {
+      await req('PUT', `${SALES_URL}/sales/${id}`, {
+        customer_name: customer, sale_datetime: new Date(dt).toISOString(), items
+      });
+      toast(`Sale '${id}' updated.`);
+    }
+    bootstrap.Modal.getInstance(document.getElementById('saleModal')).hide();
+    loadSales(salesPage);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function approveSale(saleId) {
+  if (!confirm(`Approve sale '${saleId}'?\nThis will reduce stock for all items.`)) return;
+  try {
+    await req('POST', `${SALES_URL}/sales/${saleId}/approve`, { approved_by: 'user' });
+    toast(`Sale '${saleId}' approved.`);
+    loadSales(salesPage);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function deleteSale(id) {
+  if (!confirm(`Delete sale '${id}'?`)) return;
+  try {
+    await req('DELETE', `${SALES_URL}/sales/${id}`);
+    toast(`Sale '${id}' deleted.`);
+    loadSales(salesPage);
+  } catch (e) { toast(e.message, false); }
+}
+
+// ================================================================
+// PURCHASE MODULE
+// ================================================================
+let purchasePage = 1;
+
+async function loadPurchases(page = 1) {
+  purchasePage = page;
+  const el = document.getElementById('purchaseTable');
+  try {
+    const d = await req('GET', `${PURCHASE_URL}/purchases/?page=${page}&page_size=${PAGE_SIZE}`);
+    if (!d.items.length) {
+      el.innerHTML = '<p class="text-muted text-center py-4">No purchases found.</p>';
+      document.getElementById('purchasePagination').innerHTML = '';
+      return;
+    }
+    let h = `<div class="table-responsive">
+      <table class="table table-hover table-bordered table-sm align-middle mb-0">
+        <thead class="table-dark">
+          <tr><th>Purchase ID</th><th>Vendor</th><th>Date/Time</th><th class="table-actions">Actions</th></tr>
+        </thead><tbody>`;
+    for (const p of d.items) {
+      h += `<tr>
+        <td><code>${p.purchase_id}</code></td>
+        <td>${p.vendor_name}</td>
+        <td>${fmt(p.purchase_datetime)}</td>
+        <td class="table-actions">
+          <button class="btn btn-xs btn-outline-info me-1" onclick="viewPurchase('${p.purchase_id}')" title="View Details">
+            <i class="bi bi-eye"></i>
+          </button>
+          ${p.is_approved
+            ? '<button class="btn btn-xs btn-success me-1" disabled><i class="bi bi-check-circle-fill"></i> Approved</button>'
+            : `<button class="btn btn-xs btn-outline-success me-1" onclick="approvePurchase('${p.purchase_id}')" title="Approve"><i class="bi bi-check-lg"></i> Approve</button>`
+          }
+          <button class="btn btn-xs btn-outline-primary me-1" onclick="openPurchaseModal('${p.purchase_id}')" title="Edit">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-xs btn-outline-danger" onclick="deletePurchase('${p.purchase_id}')" title="Delete">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+      </tr>`;
+    }
+    h += `</tbody></table></div>`;
+    el.innerHTML = h;
+    paginator('purchasePagination', d.total, page, 'loadPurchases');
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Failed to load purchases: ${e.message}</div>`;
+  }
+}
+
+async function viewPurchase(purchaseId) {
+  const body = document.getElementById('purchaseDetailBody');
+  body.innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('purchaseDetailModal')).show();
+  try {
+    const p = await req('GET', `${PURCHASE_URL}/purchases/${purchaseId}`);
+    const badge = p.is_approved
+      ? '<span class="badge bg-success fs-6">Approved</span>'
+      : '<span class="badge bg-warning text-dark fs-6">Pending</span>';
+    const itemRows = p.items.map(i =>
+      `<tr><td><code>${i.item_id}</code></td><td>${i.item_name}</td><td>${i.purchase_item_qty}</td></tr>`
+    ).join('');
+    body.innerHTML = `
+      <div class="row g-3 mb-3">
+        <div class="col-6"><small class="text-muted d-block">Purchase ID</small><strong>${p.purchase_id}</strong></div>
+        <div class="col-6"><small class="text-muted d-block">Status</small>${badge}</div>
+        <div class="col-6"><small class="text-muted d-block">Vendor</small>${p.vendor_name}</div>
+        <div class="col-6"><small class="text-muted d-block">Purchase Date</small>${fmt(p.purchase_datetime)}</div>
+        <div class="col-6"><small class="text-muted d-block">Created By</small>${p.created_by}</div>
+        <div class="col-6"><small class="text-muted d-block">Created Date</small>${fmt(p.created_date)}</div>
+        ${p.approved_by ? `<div class="col-6"><small class="text-muted d-block">Approved By</small>${p.approved_by}</div>` : ''}
+        ${p.approved_date ? `<div class="col-6"><small class="text-muted d-block">Approved Date</small>${fmt(p.approved_date)}</div>` : ''}
+      </div>
+      <h6 class="fw-semibold">Items</h6>
+      <table class="table table-sm table-bordered mb-0">
+        <thead class="table-light"><tr><th>Item ID</th><th>Item Name</th><th>Qty</th></tr></thead>
+        <tbody>${itemRows}</tbody>
+      </table>`;
+  } catch (e) {
+    body.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+  }
+}
+
+function addPurchaseItemRow(item = null) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" class="form-control form-control-sm" placeholder="item_id" value="${item?.item_id || ''}"></td>
+    <td><input type="text" class="form-control form-control-sm" placeholder="item_name" value="${item?.item_name || ''}"></td>
+    <td><input type="number" class="form-control form-control-sm" placeholder="qty" min="1" value="${item?.purchase_item_qty || ''}"></td>
+    <td><button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('tr').remove()"><i class="bi bi-x"></i></button></td>`;
+  document.getElementById('purchaseItemsBody').appendChild(tr);
+}
+
+async function openPurchaseModal(purchaseId = null) {
+  const mode = purchaseId ? 'edit' : 'create';
+  document.getElementById('purchaseModalMode').value = mode;
+  document.getElementById('purchaseModalTitle').textContent = purchaseId ? 'Edit Purchase' : 'New Purchase';
+  document.getElementById('purchaseIdGroup').style.display = mode === 'edit' ? 'none' : '';
+  document.getElementById('purchaseIdInput').value = '';
+  document.getElementById('purchaseVendorInput').value = '';
+  document.getElementById('purchaseDateInput').value = toLocal(null);
+  document.getElementById('purchaseItemsBody').innerHTML = '';
+  if (purchaseId) {
+    try {
+      const p = await req('GET', `${PURCHASE_URL}/purchases/${purchaseId}`);
+      document.getElementById('purchaseIdInput').value = p.purchase_id;
+      document.getElementById('purchaseVendorInput').value = p.vendor_name;
+      document.getElementById('purchaseDateInput').value = toLocal(p.purchase_datetime);
+      p.items.forEach(i => addPurchaseItemRow(i));
+    } catch (e) { toast(e.message, false); return; }
+  } else {
+    addPurchaseItemRow();
+  }
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('purchaseModal')).show();
+}
+
+function getPurchaseItems() {
+  return [...document.querySelectorAll('#purchaseItemsBody tr')].map(tr => {
+    const [a, b, c] = tr.querySelectorAll('input');
+    return { item_id: a.value.trim(), item_name: b.value.trim(), purchase_item_qty: parseInt(c.value) };
+  }).filter(i => i.item_id && i.item_name && i.purchase_item_qty > 0);
+}
+
+async function savePurchase() {
+  const mode   = document.getElementById('purchaseModalMode').value;
+  const id     = document.getElementById('purchaseIdInput').value.trim();
+  const vendor = document.getElementById('purchaseVendorInput').value.trim();
+  const dt     = document.getElementById('purchaseDateInput').value;
+  const items  = getPurchaseItems();
+  if (!vendor || !dt) { toast('Vendor and date are required.', false); return; }
+  if (!items.length) { toast('At least one valid item is required.', false); return; }
+  try {
+    if (mode === 'create') {
+      if (!id) { toast('Purchase ID is required.', false); return; }
+      await req('POST', `${PURCHASE_URL}/purchases/`, {
+        purchase_id: id, vendor_name: vendor, purchase_datetime: new Date(dt).toISOString(), items
+      });
+      toast(`Purchase '${id}' created.`);
+    } else {
+      await req('PUT', `${PURCHASE_URL}/purchases/${id}`, {
+        vendor_name: vendor, purchase_datetime: new Date(dt).toISOString(), items
+      });
+      toast(`Purchase '${id}' updated.`);
+    }
+    bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
+    loadPurchases(purchasePage);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function approvePurchase(purchaseId) {
+  if (!confirm(`Approve purchase '${purchaseId}'?\nThis will add stock for all items.`)) return;
+  try {
+    await req('POST', `${PURCHASE_URL}/purchases/${purchaseId}/approve`, { approved_by: 'user' });
+    toast(`Purchase '${purchaseId}' approved.`);
+    loadPurchases(purchasePage);
+  } catch (e) { toast(e.message, false); }
+}
+
+async function deletePurchase(id) {
+  if (!confirm(`Delete purchase '${id}'?`)) return;
+  try {
+    await req('DELETE', `${PURCHASE_URL}/purchases/${id}`);
+    toast(`Purchase '${id}' deleted.`);
+    loadPurchases(purchasePage);
+  } catch (e) { toast(e.message, false); }
+}
+
+// ================================================================
+// INIT — load active tab, reload on tab switch
+// ================================================================
+document.querySelectorAll('#mainTabs .nav-link').forEach(link => {
+  link.addEventListener('shown.bs.tab', e => {
+    const t = e.target.getAttribute('href');
+    if (t === '#stockTab') loadStocks(1);
+    else if (t === '#salesTab') loadSales(1);
+    else if (t === '#purchaseTab') loadPurchases(1);
+  });
+});
+
+loadStocks(1);
+</script>
+</body>
+</html>

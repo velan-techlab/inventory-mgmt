@@ -1,4 +1,5 @@
 import logging
+import os
 import requests as http_requests
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -12,7 +13,7 @@ from schemas import (
     PurchaseListResponse, PaginatedPurchaseResponse,
 )
 
-STOCK_SERVICE_URL = "http://localhost:8000"
+STOCK_SERVICE_URL = os.getenv("STOCK_SERVICE_URL", "http://localhost:8000")
 
 logger = logging.getLogger(__name__)
 

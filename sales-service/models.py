@@ -23,8 +23,8 @@ class Sales(Base):
 class SalesDetail(Base):
     __tablename__ = "salesdetails"
 
-    item_id = Column(String, primary_key=True, index=True)
-    sale_id = Column(String, ForeignKey("sales.sale_id"), nullable=False)
+    item_id = Column(String, primary_key=True)
+    sale_id = Column(String, ForeignKey("sales.sale_id"), primary_key=True)
     item_name = Column(String, nullable=False)
     sales_item_qty = Column(Integer, nullable=False)
     created_date = Column(DateTime, server_default=func.now(), nullable=False)

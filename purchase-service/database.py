@@ -1,4 +1,5 @@
 import logging
+import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -6,12 +7,10 @@ from sqlalchemy.orm import sessionmaker
 
 logger = logging.getLogger(__name__)
 
-DATABASE_URL = "sqlite:///./purchase.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/purchasedb")
 
 logger.info("Connecting to database: %s", DATABASE_URL)
-engine = create_engine(
-    DATABASE_URL, connect_args={"check_same_thread": False}
-)
+engine = create_engine(DATABASE_URL)
 logger.debug("Database engine created")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

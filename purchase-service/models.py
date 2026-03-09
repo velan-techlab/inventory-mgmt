@@ -23,8 +23,8 @@ class Purchase(Base):
 class PurchaseDetail(Base):
     __tablename__ = "purchasedetails"
 
-    item_id = Column(String, primary_key=True, index=True)
-    purchase_id = Column(String, ForeignKey("purchase.purchase_id"), nullable=False)
+    item_id = Column(String, primary_key=True)
+    purchase_id = Column(String, ForeignKey("purchase.purchase_id"), primary_key=True)
     item_name = Column(String, nullable=False)
     purchase_item_qty = Column(Integer, nullable=False)
     created_date = Column(DateTime, server_default=func.now(), nullable=False)

@@ -2,6 +2,7 @@ import logging
 import logging.config
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 from routers import stock
 
@@ -36,6 +37,13 @@ app = FastAPI(
     title="Stock Service",
     description="Microservice for managing stock inventory",
     version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(stock.router)
