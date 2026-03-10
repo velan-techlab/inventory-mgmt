@@ -14,7 +14,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: velan-techlab/stock-service
+  IMAGE_NAME: velantechlab/inventory-stock-api
 
 jobs:
   build-and-push:
