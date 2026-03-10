@@ -22,6 +22,3 @@ APIS
    * stock bulk reduce, it accepts the list of stock ud, item name, update qty and reduce and update in to the stock table
 
 
-
-
-
