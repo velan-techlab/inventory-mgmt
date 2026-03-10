@@ -19,7 +19,6 @@ APIS
 
     * stock reduce, it accepts the stock id, item name and update quantity and it reduce and  update the existing stock quantity in the table 
 
-
    * stock bulk reduce, it accepts the list of stock ud, item name, update qty and reduce and update in to the stock table
 
 
