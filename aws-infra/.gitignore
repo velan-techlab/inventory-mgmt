@@ -1,0 +1,23 @@
+# Terraform local state (use remote backend like S3 instead)
+terraform.tfstate
+terraform.tfstate.backup
+*.tfstate
+*.tfstate.*
+
+# Terraform cache and provider binaries
+.terraform/
+.terraform.lock.hcl
+
+# Variable files that may contain secrets
+*.tfvars
+*.tfvars.json
+
+# Plan files (contain sensitive data)
+*.tfplan
+tfplan
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
