@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aws-classic-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /stocks
+        pathType: Prefix
+        backend:
+          service:
+            name: stock-service
+            port:
+              number: 80
+      - path: /sales
+        pathType: Prefix
+        backend:
+          service:
+            name: sales-service
+            port:
+              number: 80
+      - path: /purchases
+        pathType: Prefix
+        backend:
+          service:
+            name: purchase-service
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80
