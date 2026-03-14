@@ -11,6 +11,7 @@
     .btn-xs { padding: 0.1rem 0.4rem; font-size: 0.75rem; border-radius: 0.2rem; }
     .table-actions { white-space: nowrap; }
     code { color: #0d6efd; font-size: 0.85em; }
+    .qty-hint { font-size: 0.7rem; color: #6c757d; min-height: 1rem; }
   </style>
 </head>
 <body>
@@ -414,6 +415,7 @@ async function saveStock() {
       toast(`Stock '${id}' updated.`);
     }
     bootstrap.Modal.getInstance(document.getElementById('stockModal')).hide();
+    stockItems = []; stockItemsPromise = null;  // invalidate autocomplete cache
     loadStocks(stockPage);
   } catch (e) { toast(e.message, false); }
 }
@@ -479,7 +481,7 @@ async function loadSales(page = 1) {
             <i class="bi bi-eye"></i>
           </button>
           ${s.status === 'approved'
-            ? '<button class="btn btn-xs btn-success me-1" disabled><i class="bi bi-check-circle-fill"></i> Approved</button>'
+            ? '<button class="btn btn-xs btn-danger me-1" disabled><i class="bi bi-check-circle-fill"></i> Approved</button>'
             : `<button class="btn btn-xs btn-outline-success me-1" onclick="approveSale('${s.sale_id}')" title="Approve"><i class="bi bi-check-lg"></i> Approve</button>`
           }
           <button class="btn btn-xs btn-outline-primary me-1" onclick="openSaleModal('${s.sale_id}')" title="Edit">
@@ -535,14 +537,22 @@ async function viewSale(saleId) {
 function addSaleItemRow(item = null) {
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="text" class="form-control form-control-sm" placeholder="item_id" value="${item?.item_id || ''}"></td>
-    <td><input type="text" class="form-control form-control-sm" placeholder="item_name" value="${item?.item_name || ''}"></td>
+    <td>
+      <input type="text" class="form-control form-control-sm" placeholder="item_id" list="stockIdList"
+             value="${item?.item_id || ''}" oninput="syncSaleName(this)" onchange="syncSaleName(this)">
+    </td>
+    <td>
+      <input type="text" class="form-control form-control-sm" placeholder="item_name" list="stockNameList"
+             value="${item?.item_name || ''}" oninput="syncSaleId(this)" onchange="syncSaleId(this)">
+      <div class="qty-hint"></div>
+    </td>
     <td><input type="number" class="form-control form-control-sm" placeholder="qty" min="1" value="${item?.sales_item_qty || ''}"></td>
     <td><button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('tr').remove()"><i class="bi bi-x"></i></button></td>`;
   document.getElementById('saleItemsBody').appendChild(tr);
 }
 
 async function openSaleModal(saleId = null) {
+  await loadStockItems();
   const mode = saleId ? 'edit' : 'create';
   document.getElementById('saleModalMode').value = mode;
   document.getElementById('saleModalTitle').textContent = saleId ? 'Edit Sale' : 'New Sale';
@@ -646,7 +656,7 @@ async function loadPurchases(page = 1) {
             <i class="bi bi-eye"></i>
           </button>
           ${p.is_approved
-            ? '<button class="btn btn-xs btn-success me-1" disabled><i class="bi bi-check-circle-fill"></i> Approved</button>'
+            ? '<button class="btn btn-xs btn-danger me-1" disabled><i class="bi bi-check-circle-fill"></i> Approved</button>'
             : `<button class="btn btn-xs btn-outline-success me-1" onclick="approvePurchase('${p.purchase_id}')" title="Approve"><i class="bi bi-check-lg"></i> Approve</button>`
           }
           <button class="btn btn-xs btn-outline-primary me-1" onclick="openPurchaseModal('${p.purchase_id}')" title="Edit">
@@ -702,14 +712,22 @@ async function viewPurchase(purchaseId) {
 function addPurchaseItemRow(item = null) {
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="text" class="form-control form-control-sm" placeholder="item_id" value="${item?.item_id || ''}"></td>
-    <td><input type="text" class="form-control form-control-sm" placeholder="item_name" value="${item?.item_name || ''}"></td>
+    <td>
+      <input type="text" class="form-control form-control-sm" placeholder="item_id" list="stockIdList"
+             value="${item?.item_id || ''}" oninput="syncPurchaseName(this)" onchange="syncPurchaseName(this)">
+    </td>
+    <td>
+      <input type="text" class="form-control form-control-sm" placeholder="item_name" list="stockNameList"
+             value="${item?.item_name || ''}" oninput="syncPurchaseId(this)" onchange="syncPurchaseId(this)">
+      <div class="qty-hint"></div>
+    </td>
     <td><input type="number" class="form-control form-control-sm" placeholder="qty" min="1" value="${item?.purchase_item_qty || ''}"></td>
     <td><button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('tr').remove()"><i class="bi bi-x"></i></button></td>`;
   document.getElementById('purchaseItemsBody').appendChild(tr);
 }
 
 async function openPurchaseModal(purchaseId = null) {
+  await loadStockItems();
   const mode = purchaseId ? 'edit' : 'create';
   document.getElementById('purchaseModalMode').value = mode;
   document.getElementById('purchaseModalTitle').textContent = purchaseId ? 'Edit Purchase' : 'New Purchase';
@@ -784,6 +802,72 @@ async function deletePurchase(id) {
 }
 
 // ================================================================
+// STOCK AUTOCOMPLETE — shared cache + datalist helpers
+// ================================================================
+let stockItems = [];
+
+let stockItemsPromise = null;
+
+async function loadStockItems() {
+  if (stockItemsPromise) return stockItemsPromise;
+  stockItemsPromise = (async () => {
+    try {
+      let page = 1, all = [];
+      while (true) {
+        const data = await req('GET', `${STOCK_URL}/stocks/?page=${page}&page_size=100`);
+        all = all.concat(data.items || []);
+        if (all.length >= data.total) break;
+        page++;
+      }
+      stockItems = all;
+      const idList   = document.getElementById('stockIdList');
+      const nameList = document.getElementById('stockNameList');
+      idList.innerHTML   = stockItems.map(s => `<option value="${s.stock_id}">${s.item_name}</option>`).join('');
+      nameList.innerHTML = stockItems.map(s => `<option value="${s.item_name}"></option>`).join('');
+    } catch (e) { stockItemsPromise = null; /* allow retry */ }
+  })();
+  return stockItemsPromise;
+}
+
+function showQtyHint(td, stockId) {
+  const s = stockItems.find(x => x.stock_id === stockId);
+  const hint = td.querySelector('.qty-hint');
+  if (hint) hint.textContent = s ? `Available: ${s.current_qty}` : '';
+}
+
+function syncSaleName(idInput) {
+  const td = idInput.closest('tr').querySelectorAll('td');
+  const nameInput = td[1].querySelector('input');
+  const s = stockItems.find(x => x.stock_id === idInput.value);
+  if (s) { nameInput.value = s.item_name; showQtyHint(td[1], s.stock_id); }
+  else showQtyHint(td[1], null);
+}
+
+function syncSaleId(nameInput) {
+  const td = nameInput.closest('tr').querySelectorAll('td');
+  const idInput = td[0].querySelector('input');
+  const s = stockItems.find(x => x.item_name === nameInput.value);
+  if (s) { idInput.value = s.stock_id; showQtyHint(td[1], s.stock_id); }
+  else showQtyHint(td[1], null);
+}
+
+function syncPurchaseName(idInput) {
+  const td = idInput.closest('tr').querySelectorAll('td');
+  const nameInput = td[1].querySelector('input');
+  const s = stockItems.find(x => x.stock_id === idInput.value);
+  if (s) { nameInput.value = s.item_name; showQtyHint(td[1], s.stock_id); }
+  else showQtyHint(td[1], null);
+}
+
+function syncPurchaseId(nameInput) {
+  const td = nameInput.closest('tr').querySelectorAll('td');
+  const idInput = td[0].querySelector('input');
+  const s = stockItems.find(x => x.item_name === nameInput.value);
+  if (s) { idInput.value = s.stock_id; showQtyHint(td[1], s.stock_id); }
+  else showQtyHint(td[1], null);
+}
+
+// ================================================================
 // INIT — load active tab, reload on tab switch
 // ================================================================
 document.querySelectorAll('#mainTabs .nav-link').forEach(link => {
@@ -796,6 +880,10 @@ document.querySelectorAll('#mainTabs .nav-link').forEach(link => {
 });
 
 loadStocks(1);
+loadStockItems();
 </script>
+
+<datalist id="stockIdList"></datalist>
+<datalist id="stockNameList"></datalist>
 </body>
 </html>

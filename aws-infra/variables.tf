@@ -43,7 +43,7 @@ variable "cluster_name" {
 variable "eks_node_instance_type" {
   description = "EC2 instance type for EKS nodes"
   type        = string
-  default     = "t3.micro"
+  default     = "t3a.2xlarge"
 }
 
 variable "eks_desired_nodes" {
